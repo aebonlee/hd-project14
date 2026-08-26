@@ -1,0 +1,25 @@
+{
+  "_설명": "국가별 권한 매핑. 이 파일만 고치면 되고 코드는 손대지 않습니다. 담당자가 직접 관리하는 표입니다.",
+  "_수정방법": "새 국가가 생기면 countries 에 두 자리 코드로 추가하세요. 없는 국가는 default 를 쓰지 않고 '매핑 없음'으로 표시합니다 — 조용히 기본값을 주면 권한이 잘못 나가도 아무도 모릅니다.",
+
+  "modules": [
+    { "key": "dealernet",  "label": "DealerNET" },
+    { "key": "parts",      "label": "Parts Catalog" },
+    { "key": "ordering",   "label": "Complete Ordering" },
+    { "key": "mydevelon",  "label": "My Develon" },
+    { "key": "irw",        "label": "Inventory, Retails & Warranty" }
+  ],
+
+  "levels": ["없음", "조회", "조회+등록", "관리자"],
+
+  "countries": {
+    "KR": { "name": "대한민국",     "dealernet": "관리자",   "parts": "조회+등록", "ordering": "조회+등록", "mydevelon": "조회",     "irw": "관리자" },
+    "US": { "name": "미국",         "dealernet": "조회+등록", "parts": "조회+등록", "ordering": "조회+등록", "mydevelon": "조회+등록", "irw": "조회+등록" },
+    "DE": { "name": "독일",         "dealernet": "조회+등록", "parts": "조회+등록", "ordering": "조회",      "mydevelon": "조회",     "irw": "조회" },
+    "BE": { "name": "벨기에",       "dealernet": "조회+등록", "parts": "조회+등록", "ordering": "조회",      "mydevelon": "조회",     "irw": "조회" },
+    "IN": { "name": "인도",         "dealernet": "조회",     "parts": "조회+등록", "ordering": "조회",      "mydevelon": "없음",     "irw": "조회" },
+    "BR": { "name": "브라질",       "dealernet": "조회",     "parts": "조회+등록", "ordering": "조회",      "mydevelon": "없음",     "irw": "조회" },
+    "CN": { "name": "중국",         "dealernet": "조회",     "parts": "조회",     "ordering": "없음",      "mydevelon": "없음",     "irw": "조회" },
+    "AE": { "name": "아랍에미리트", "dealernet": "조회+등록", "parts": "조회+등록", "ordering": "조회",      "mydevelon": "조회",     "irw": "조회" }
+  }
+}
