@@ -101,3 +101,13 @@ footer{border-top:1px solid var(--line); padding:24px 0 40px; color:var(--sub); 
 td.lv-none{color:#8b98a8;}
 td.lv-admin{font-weight:750; color:#0a4d33;}
 .sub{color:var(--sub); font-size:12.5px;}
+
+.steps{counter-reset:s; list-style:none; padding:0; margin:14px 0;}
+.steps li{counter-increment:s; position:relative; padding-left:36px; margin-bottom:12px;}
+.steps li::before{content:counter(s); position:absolute; left:0; top:1px;
+  width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff;
+  font-size:12.5px; font-weight:700; display:flex; align-items:center; justify-content:center;}
+pre{background:#0f1e2e; color:#dbe7f0; border-radius:10px; padding:15px 17px;
+  overflow-x:auto; font-size:13px; line-height:1.7; margin:14px 0;}
+pre code{background:none; color:inherit; padding:0;}
+h3{font-size:16px; font-weight:700; margin:22px 0 6px;}

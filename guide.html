@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사용법 — 신규 딜러 Access Portal 등록 자동화</title>
+<meta name="description" content="엑셀 준비부터 포털 자동 입력까지, 실제로 쓰는 순서대로 정리했습니다.">
+<link rel="stylesheet" href="css/style.css">
+<!-- === HD:META:BEGIN (자동 생성 — scripts 로 다시 굽습니다) === -->
+<link rel="icon" href="https://aebonlee.github.io/hd-project14/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="https://aebonlee.github.io/hd-project14/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="https://aebonlee.github.io/hd-project14/apple-touch-icon.png">
+<link rel="canonical" href="https://aebonlee.github.io/hd-project14/guide.html">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HD 생성형 AI 업무자동화 전문가과정">
+<meta property="og:url" content="https://aebonlee.github.io/hd-project14/guide.html">
+<meta property="og:title" content="딜러 등록 자동화 — 사용법 — HD 생성형 AI 업무자동화 전문가과정">
+<meta property="og:description" content="엑셀 준비부터 포털 자동 입력까지, 실제로 쓰는 순서대로. 계정 정보를 다루는 법도 함께.">
+<meta property="og:image" content="https://aebonlee.github.io/hd-project14/og-guide.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="딜러 등록 자동화 — 사용법 — HD 생성형 AI 업무자동화 전문가과정">
+<meta name="twitter:description" content="엑셀 준비부터 포털 자동 입력까지, 실제로 쓰는 순서대로. 계정 정보를 다루는 법도 함께.">
+<meta name="twitter:image" content="https://aebonlee.github.io/hd-project14/og-guide.png">
+<!-- === HD:META:END === -->
+</head>
+<body>
+
+<nav class="topnav" aria-label="주요 메뉴">
+  <div class="topnav-inner">
+    <a class="topnav-brand" href="index.html">딜러 등록 자동화 <small>기획 임나연</small></a>
+    <ul class="topnav-links">
+      <li><a href="index.html">등록 검증</a></li>
+      <li><a href="guide.html" class="active" aria-current="page">사용법</a></li>
+      <li><a href="https://github.com/aebonlee/hd-project14" target="_new" rel="noopener noreferrer">저장소</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">사용 안내</div>
+  <h1>실제로 쓰는 순서</h1>
+  <p>엑셀 준비 → 검증 → 확인 → 포털 입력 → <b>사람이 저장</b>.
+     마지막 단계는 일부러 자동화하지 않았습니다.</p>
+</div></header>
+
+<main><div class="wrap">
+
+<h2>1. 엑셀 준비</h2>
+<p class="sub">열 이름은 아래 중 아무거나 됩니다. 순서는 상관없고, 위에 제목이 몇 줄 있어도 찾아냅니다.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>항목</th><th>알아보는 이름</th></tr></thead>
+  <tbody>
+    <tr><td><b>이름</b></td><td>이름 · 성명 · 담당자 · Name · Full Name</td></tr>
+    <tr><td><b>국가</b></td><td>국가 · 국가코드 · Country · Country Code</td></tr>
+    <tr><td><b>언어</b></td><td>언어 · 사용언어 · Language · Locale</td></tr>
+    <tr><td><b>이메일</b></td><td>이메일 · 메일주소 · Email · E-mail</td></tr>
+    <tr><td><b>딜러사명</b></td><td>딜러사명 · 업체명 · 회사명 · Dealer Name · Company</td></tr>
+    <tr><td><b>전화번호</b></td><td>전화번호 · 연락처 · Phone · Tel · Mobile</td></tr>
+  </tbody>
+</table></div>
+<div class="note">
+  국가는 <b>코드(KR)로 적어도 되고 한글 이름(대한민국)으로 적어도</b> 됩니다.
+  다만 권한 매핑에 없는 국가는 받지 않습니다 — 아래 3번을 보세요.
+</div>
+
+<h2>2. 검증 결과 읽기</h2>
+<p class="sub">「검토필요」에 적힌 것은 <b>포털에 넣기 전에 고쳐야 할 것</b>입니다.
+   이 도구는 <b>대신 고쳐 주지 않습니다.</b></p>
+<div class="tablewrap"><table>
+  <thead><tr><th>나오는 말</th><th>뜻</th><th>어떻게</th></tr></thead>
+  <tbody>
+    <tr><td>이름 없음 · 언어 없음 …</td><td>필수 항목이 비어 있음</td><td>엑셀에서 채우고 다시 올립니다</td></tr>
+    <tr><td>이메일에 공백이 있음</td><td>포털이 받지 않습니다</td><td>공백을 지웁니다</td></tr>
+    <tr><td>이메일에 한글이 있음</td><td>같은 이유</td><td>영문 주소로 바꿉니다</td></tr>
+    <tr><td>국가를 알 수 없음</td><td>권한 매핑에 없는 국가</td><td>3번 — 매핑에 추가합니다</td></tr>
+    <tr><td>이메일 중복</td><td>같은 주소가 두 번 나옴</td><td>한 줄을 지웁니다. 넣으면 <b>중복 계정</b>이 생깁니다</td></tr>
+    <tr><td>매핑에 빠진 항목</td><td>그 국가의 권한 다섯 개 중 일부가 비어 있음</td><td>3번 — 매핑을 채웁니다</td></tr>
+  </tbody>
+</table></div>
+
+<h2>3. 국가·권한 매핑 고치기</h2>
+<p class="sub"><code>config/permissions.json</code> 하나만 고칩니다. <b>코드는 손대지 않습니다.</b></p>
+<pre><code>"AE": {
+  "name": "아랍에미리트",
+  "dealernet": "조회+등록",
+  "parts":     "조회+등록",
+  "ordering":  "조회",
+  "mydevelon": "조회",
+  "irw":       "조회"
+}</code></pre>
+<p class="sub">등급은 <code>없음</code> · <code>조회</code> · <code>조회+등록</code> · <code>관리자</code> 네 가지뿐입니다.
+   그 밖의 말을 적으면 검증에서 걸립니다 — 오타로 권한이 잘못 나가는 것을 막기 위해서입니다.</p>
+<div class="note">
+  <b>모르는 국가에 기본 권한을 주지 않습니다.</b> 조용히 기본값을 주면
+  잘못된 권한이 나가도 아무도 모릅니다. 표에 추가하도록 막아 세웁니다.
+</div>
+
+<h2>4. 포털 입력</h2>
+<p class="sub">검증을 통과한 줄만 담은 JSON 을 내려받아 씁니다.</p>
+<pre><code>export HD_PORTAL_USER='사번 또는 아이디'
+export HD_PORTAL_PASS='비밀번호'
+node scripts/portal-fill.mjs 딜러등록_20260826.json</code></pre>
+
+<div class="warn">
+  <b>먼저 확인할 것 두 가지</b><br>
+  ① <b>로그인 자동화가 사내에서 허용되는지.</b> 금지하는 곳이 많고 계정 잠금으로 이어질 수 있습니다.<br>
+  ② 포털이 <b>등록 API 를 직접 받는지.</b> 받는다면 화면을 흉내 내는 것보다 훨씬 안정적입니다
+     (화면은 개편되면 바로 깨집니다).
+</div>
+
+<h3>아직 채워야 하는 부분</h3>
+<p class="sub">포털 화면의 <b>입력칸 이름(선택자)</b>이 필요합니다. 사이트가 사외에서만 열리고
+   로그인해야 볼 수 있어 비워 두었습니다. <b>비어 있으면 스크립트가 스스로 멈춥니다</b> —
+   엉뚱한 곳에 입력하지 않도록.</p>
+<ol class="steps">
+  <li>포털에 로그인해 신규 딜러 등록 화면을 엽니다.</li>
+  <li>입력칸에서 <b>우클릭 → 검사</b>를 눌러 <code>id</code> 나 <code>name</code> 을 확인합니다.</li>
+  <li><code>scripts/portal-fill.mjs</code> 의 <code>SELECTORS</code> 에
+      <code>#id</code> 또는 <code>[name="..."]</code> 형태로 적습니다.</li>
+  <li>한 명만 먼저 돌려 보고, 화면에 제대로 들어가는지 확인한 뒤 나머지를 진행합니다.</li>
+</ol>
+
+<h2>5. 저장은 사람이</h2>
+<p class="sub">스크립트는 프로필과 권한을 <b>입력만 하고 멈춥니다.</b>
+   화면에서 확인한 뒤 직접 Save 를 누르고, Enter 를 치면 다음 딜러로 넘어갑니다.
+   기획서의 「검토 알림」 요구를 그대로 지킨 것입니다 —
+   자동으로 저장해 버리면 잘못 들어간 것을 되돌리기가 훨씬 번거롭습니다.</p>
+
+<h2>계정 정보 다루기</h2>
+<div class="warn">
+  <b>아이디·비밀번호를 코드나 엑셀에 적지 마세요.</b>
+  <code>.env</code> 로만 받고 그 파일은 커밋되지 않습니다(<code>.gitignore</code>).<br>
+  <b>한 번 커밋한 비밀번호는 지워도 커밋 기록에 남습니다.</b>
+  실수로 올렸다면 비밀번호를 바꾸는 것 말고는 방법이 없습니다.
+</div>
+
+<h2>파일은 서버로 올라가지 않습니다</h2>
+<p class="sub">엑셀 읽기도 검증도 전부 이 브라우저 안에서 끝납니다.
+   딜러 개인정보(이름·이메일·전화번호)를 다루므로 이 점이 중요합니다.</p>
+
+<p style="margin-top:32px"><a href="index.html">← 등록 검증으로 돌아가기</a></p>
+
+</div></main>
+
+<footer><div class="wrap">
+  신규 딜러 Access Portal 등록 자동화 · 생성형 AI 업무자동화 전문가과정 1차수 — 기획: 임나연
+</div></footer>
+</body>
+</html>
