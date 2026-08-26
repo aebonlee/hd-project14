@@ -96,9 +96,12 @@
     var ready = rows.filter(function (r) { return r.ready; }).length;
     var need = rows.length - ready;
 
-    var head = ['#', '이름', '국가', '언어', '이메일', '딜러사명', '전화번호']
+    var head = ['<input type="checkbox" id="chk-all" title="전체 선택">', '#',
+                '이름', '국가', '언어', '이메일', '딜러사명', '전화번호']
       .concat(CFG.modules.map(function (m) { return m.label; }))
-      .concat(['검토필요']).map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('');
+      .concat(['검토필요'])
+      // ⚠ 첫 칸은 체크박스 HTML 이라 그대로 넣는다. esc 하면 글자로 보인다.
+      .map(function (h, i) { return '<th>' + (i === 0 ? h : esc(h)) + '</th>'; }).join('');
 
     var body = rows.map(function (r, i) {
       var perms = CFG.modules.map(function (m) {
@@ -106,7 +109,10 @@
         var cls = v === '없음' ? 'lv-none' : v === '관리자' ? 'lv-admin' : '';
         return '<td class="' + cls + '">' + esc(v) + '</td>';
       }).join('');
+      // 검토가 필요한 줄은 **기본으로 꺼 둔다.** 켜 두면 그대로 내보내기 쉽다.
       return '<tr class="' + (r.ready ? '' : 'flag') + '">' +
+        '<td><input type="checkbox" class="chk" data-i="' + i + '"' +
+          (r.ready ? ' checked' : '') + (r.ready ? '' : ' title="검토가 필요한 줄입니다"') + '></td>' +
         '<td class="num">' + (i + 1) + '</td>' +
         '<td>' + esc(r.name) + '</td>' +
         '<td>' + esc(r.countryCode || r.country) +
@@ -133,15 +139,41 @@
       '<div class="tablewrap"><table><thead><tr>' + head + '</tr></thead><tbody>' + body +
       '</tbody></table></div>' +
       '<div class="btnrow">' +
-      '<button class="btn green" id="dl-xlsx">검증 결과 엑셀로 내려받기</button>' +
-      '<button class="btn" id="dl-json">등록용 JSON 내려받기 (등록 가능분만)</button>' +
+      '<button class="btn green" id="dl-xlsx">검증 결과 엑셀로 내려받기 (전체)</button>' +
+      '<button class="btn primary" id="dl-json">선택한 <span id="sel-n">0</span>줄 내보내기 (JSON)</button>' +
       '</div>' +
-      '<div class="note"><b>다음 단계는 사람이 합니다.</b> 이 화면은 포털에 넣기 전까지를 맡습니다. ' +
-      '실제 등록은 <code>scripts/portal-fill.mjs</code> 로 하고, 최종 Save 전에 담당자가 확인합니다 — ' +
-      '<a href="guide.html">사용법</a> 참고.</div>';
+      '<div class="note"><b>넣을 줄은 직접 고르세요.</b> 검토가 필요한 줄은 기본으로 꺼 두었습니다. ' +
+      '내보낸 JSON 을 <code>scripts/portal-fill.mjs</code> 에 넘기면 입력칸을 대신 채웁니다.<br>' +
+      '<b>로그인은 사람이 직접 합니다</b> — 스크립트는 계정 정보를 다루지 않습니다. ' +
+      '최종 Save 도 사람이 누릅니다. <a href="guide.html">사용법</a> 참고.</div>';
 
     $('#dl-xlsx').addEventListener('click', downloadXlsx);
     $('#dl-json').addEventListener('click', downloadJson);
+
+    // 체크박스 — 위임으로 걸어 두면 표를 다시 그려도 살아 있다
+    var tbl = $('#out table');
+    tbl.addEventListener('change', function (e) {
+      if (e.target.id === 'chk-all') {
+        var on = e.target.checked;
+        Array.prototype.forEach.call(tbl.querySelectorAll('.chk'), function (c) { c.checked = on; });
+      }
+      updateCount();
+    });
+    updateCount();
+  }
+
+  function selectedIndexes() {
+    return Array.prototype.slice.call(document.querySelectorAll('.chk'))
+      .filter(function (c) { return c.checked; })
+      .map(function (c) { return Number(c.getAttribute('data-i')); });
+  }
+
+  function updateCount() {
+    var n = selectedIndexes().length;
+    var el = document.getElementById('sel-n');
+    if (el) el.textContent = n;
+    var btn = document.getElementById('dl-json');
+    if (btn) btn.disabled = n === 0;
   }
 
   function downloadXlsx() {
@@ -162,11 +194,19 @@
   }
 
   function downloadJson() {
-    // ⚠ 등록 가능한 줄만 내보낸다. 문제 있는 줄이 섞이면
-    //    자동 등록이 중간에 멈추거나, 더 나쁘게는 잘못된 채로 들어간다.
-    var ok = rows.filter(function (r) { return r.ready; }).map(function (r) {
+    // 사람이 고른 줄만 내보낸다.
+    // 검토가 필요한 줄은 기본으로 꺼져 있지만, 확인하고 켰다면 그 판단을 존중한다 —
+    // 다만 어떤 상태였는지 파일에 남겨 나중에 되짚을 수 있게 한다.
+    var idx = selectedIndexes();
+    var chosen = idx.map(function (i) { return rows[i]; });
+    var risky = chosen.filter(function (r) { return !r.ready; }).length;
+    if (risky && !confirm('검토가 필요한 줄 ' + risky + '개가 선택되어 있습니다.\n' +
+        '그대로 내보낼까요?')) return;
+    var ok = chosen.map(function (r) {
       return { name: r.name, country: r.countryCode, language: r.lang,
-               email: r.email, dealer: r.dealer, phone: r.phone, permissions: r.perms };
+               email: r.email, dealer: r.dealer, phone: r.phone, permissions: r.perms,
+               // 내보낼 때 어떤 상태였는지 남긴다
+               verified: r.ready, note: r.review || '' };
     });
     var blob = new Blob([JSON.stringify({ generatedAt: new Date().toISOString(),
       count: ok.length, dealers: ok }, null, 2)], { type: 'application/json' });

@@ -111,3 +111,7 @@ pre{background:#0f1e2e; color:#dbe7f0; border-radius:10px; padding:15px 17px;
   overflow-x:auto; font-size:13px; line-height:1.7; margin:14px 0;}
 pre code{background:none; color:inherit; padding:0;}
 h3{font-size:16px; font-weight:700; margin:22px 0 6px;}
+
+/* 선택 체크박스 — 표 안에서 누르기 쉽게 */
+td input.chk, th input#chk-all{width:17px; height:17px; cursor:pointer; accent-color:var(--brand);}
+th input#chk-all{vertical-align:middle;}
