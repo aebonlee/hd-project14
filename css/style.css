@@ -115,3 +115,15 @@ h3{font-size:16px; font-weight:700; margin:22px 0 6px;}
 /* 선택 체크박스 — 표 안에서 누르기 쉽게 */
 td input.chk, th input#chk-all{width:17px; height:17px; cursor:pointer; accent-color:var(--brand);}
 th input#chk-all{vertical-align:middle;}
+
+/* Region 배지 · Items to Select 제안 카드 (임나연 수정요청) */
+.badge{display:inline-block; background:#eef2f6; color:var(--sub); border-radius:999px;
+  padding:2px 9px; font-size:11.5px; font-weight:700;}
+.badge-auto{background:#dceaf3; color:#0b3a4f;}
+.region-card{margin-bottom:14px;}
+.region-card h3{margin:0 0 8px;}
+.region-items{list-style:none; margin:0; padding:0; columns:2; column-gap:22px;}
+.region-items li{padding:3px 0; font-size:13px; break-inside:avoid;}
+.region-items label{display:flex; align-items:flex-start; gap:6px; color:var(--ink);}
+.region-items input{margin-top:3px;}
+@media (max-width:640px){ .region-items{columns:1;} }

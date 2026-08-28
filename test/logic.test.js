@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const L = require('../js/logic.js');
 const CFG = JSON.parse(fs.readFileSync(path.join(__dirname, '../config/permissions.json'), 'utf8'));
+const REGIONCFG = JSON.parse(fs.readFileSync(path.join(__dirname, '../config/region-items.json'), 'utf8'));
 
 let pass = 0, fail = 0;
 const test = (n, f) => { try { f(); pass++; console.log('  ✔ ' + n); }
@@ -161,6 +162,74 @@ test('★ 같은 이메일이 두 번 오면 잡는다 — 포털에 중복 계�
 
 test('빈 이메일은 중복으로 세지 않는다', () => {
   assert.strictEqual(L.findDuplicates([{ email:'' }, { email:'' }]).length, 0);
+});
+
+/* ═════════════════ Region 자동 매핑 (임나연 수정요청) ═════════════════ */
+
+test('영문 국가명으로 HD Region 을 찾는다', () => {
+  assert.strictEqual(L.regionFor('Guatemala', REGIONCFG), 'LA');
+  assert.strictEqual(L.regionFor('South Korea', REGIONCFG), 'APAC');
+  assert.strictEqual(L.regionFor('germany', REGIONCFG), 'EU', '대소문자를 가리지 않아야 한다');
+});
+
+test('region-items.json 의 IN/ID 는 permissions.json 의 ISO 코드와 다른 체계다 — 섞이면 안 된다', () => {
+  assert.strictEqual(REGIONCFG.countryToRegion['Indonesia'], 'IN');
+  assert.strictEqual(REGIONCFG.countryToRegion['India'], 'ID');
+  // permissions.json 에서는 반대로 IN = 인도다. 두 표를 같은 코드로 착각하면 안 된다.
+  assert.strictEqual(CFG.countries.IN.name, '인도');
+});
+
+test('모르는 국가명은 Region 을 추측하지 않는다', () => {
+  assert.strictEqual(L.regionFor('Neverland', REGIONCFG), null);
+  assert.strictEqual(L.regionFor('', REGIONCFG), null);
+});
+
+test('APAC·LA·MEA 는 Items to Select 26개를 제안하고, 다른 Region 은 제안하지 않는다', () => {
+  const auto = L.regionItemsFor('LA', REGIONCFG);
+  assert.strictEqual(auto.autoCheck, true);
+  assert.strictEqual(auto.items.length, 26);
+
+  const notAuto = L.regionItemsFor('EU', REGIONCFG);
+  assert.strictEqual(notAuto.autoCheck, false);
+  assert.strictEqual(notAuto.items.length, 0);
+
+  const unknown = L.regionItemsFor(null, REGIONCFG);
+  assert.strictEqual(unknown.autoCheck, false);
+});
+
+test('checkRow 가 hdRegion 과 regionItems 를 함께 채운다', () => {
+  // Region 판정은 원문 국가 텍스트로 한다 — 실제 템플릿의 Country 열은 'United States'처럼
+  // 영문 전체 이름을 쓴다(코드 'US'가 아니다). ISO 코드만으로는 Region 을 찾지 못하는 것이
+  // 의도된 동작이다(추측하지 않는다).
+  const raw = { name:'X', country:'United States', lang:'EN', email:'x@x.com', dealer:'D', phone:'1' };
+  const r = L.checkRow(raw, CFG, REGIONCFG);
+  assert.strictEqual(r.hdRegion, 'NA', 'NA 는 자동제안 대상이 아니다');
+  assert.strictEqual(r.regionItems.autoCheck, false);
+});
+
+test('국가 열에 ISO 코드만 있으면(예: US) Region 은 추측하지 않는다 — 실제 템플릿은 전체 이름을 쓴다', () => {
+  const raw = { name:'X', country:'US', lang:'EN', email:'x@x.com', dealer:'D', phone:'1' };
+  const r = L.checkRow(raw, CFG, REGIONCFG);
+  assert.strictEqual(r.hdRegion, null);
+});
+
+/* ═════════════════ Member of Dealer — 절대 자동으로 안 채운다 ═════════════════ */
+
+test('머리글의 "Member of Dealer" 는 별도 칸으로만 잡고, 딜러사명(FIELDS.dealer) 으로는 절대 안 흘러든다', () => {
+  const header = ['Full Name', 'Country', 'Preferred Language', 'Email', 'Member of Dealer', 'Mobile (entry)'];
+  const hit = L.mapHeader(header);
+  assert.strictEqual(hit.memberOfDealer, 4);
+  assert.strictEqual(hit.dealer, undefined, '"Member of Dealer" 안의 dealer 를 딜러사명 칸으로 주우면 안 된다');
+});
+
+test('Member of Dealer 값은 그대로 옮겨지되 검증·자동화 대상에서는 빠진다', () => {
+  const raw = { name:'X', country:'KR', lang:'KO', email:'x@x.com', dealer:'', phone:'1',
+                memberOfDealer:'ABC Motors' };
+  const r = L.checkRow(raw, CFG, REGIONCFG);
+  assert.strictEqual(r.memberOfDealer, 'ABC Motors');
+  // 딜러사명(필수 항목)이 비었으니 그 이유로는 검토 필요가 맞지만,
+  // memberOfDealer 자체는 problems 판단에 관여하지 않아야 한다(자동화 대상이 아니므로 옳고 그름을 판정하지 않는다).
+  assert.ok(r.review.indexOf('딜러사명') !== -1);
 });
 
 console.log('\n결과: ' + pass + ' 통과, ' + fail + ' 실패');

@@ -8,7 +8,7 @@
   'use strict';
   var L = window.DealerLogic;
   var $ = function (s) { return document.querySelector(s); };
-  var CFG = null, picked = null, rows = [];
+  var CFG = null, REGIONCFG = null, picked = null, rows = [];
 
   var esc = function (s) { return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
@@ -16,9 +16,18 @@
   /* ───────────────────────── 설정 읽기 ───────────────────────── */
 
   function loadConfig() {
-    return fetch('config/permissions.json?cb=' + Date.now())
-      .then(function (r) { if (!r.ok) throw new Error('permissions.json ' + r.status); return r.json(); })
-      .then(function (j) { CFG = j; renderConfig(); return j; });
+    return Promise.all([
+      fetch('config/permissions.json?cb=' + Date.now())
+        .then(function (r) { if (!r.ok) throw new Error('permissions.json ' + r.status); return r.json(); }),
+      // Region 매핑은 있으면 좋지만 없어도 검증 자체는 막지 않는다 — 실패해도 조용히 건너뛴다.
+      fetch('config/region-items.json?cb=' + Date.now())
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; })
+    ]).then(function (res) {
+      CFG = res[0]; REGIONCFG = res[1];
+      renderConfig();
+      return CFG;
+    });
   }
 
   function renderConfig() {
@@ -67,7 +76,7 @@
             if (cells.filter(function (c) { return String(c).trim() !== ''; }).length < 2) continue;
             var raw = {};
             Object.keys(hit.map).forEach(function (k) { raw[k] = cells[hit.map[k]]; });
-            rows.push(L.checkRow(raw, CFG));
+            rows.push(L.checkRow(raw, CFG, REGIONCFG));
           }
         });
         if (!found) throw new Error('딜러 목록을 찾지 못했습니다. 머리글에 이메일과 국가가 있어야 합니다.');
@@ -97,7 +106,8 @@
     var need = rows.length - ready;
 
     var head = ['<input type="checkbox" id="chk-all" title="전체 선택">', '#',
-                '이름', '국가', '언어', '이메일', '딜러사명', '전화번호']
+                '이름', '국가', 'Region', '언어', '이메일', '딜러사명', '전화번호',
+                'Member of Dealer']
       .concat(CFG.modules.map(function (m) { return m.label; }))
       .concat(['검토필요'])
       // ⚠ 첫 칸은 체크박스 HTML 이라 그대로 넣는다. esc 하면 글자로 보인다.
@@ -109,6 +119,13 @@
         var cls = v === '없음' ? 'lv-none' : v === '관리자' ? 'lv-admin' : '';
         return '<td class="' + cls + '">' + esc(v) + '</td>';
       }).join('');
+      var regionBadge = r.hdRegion
+        ? '<span class="badge' + (r.regionItems && r.regionItems.autoCheck ? ' badge-auto' : '') + '">' + esc(r.hdRegion) + '</span>'
+        : '<span class="sub">미상</span>';
+      // 자동화 대상이 아니므로 값이 있어도 강조하지 않고 "직접 입력" 임을 항상 함께 적는다.
+      var mod = r.memberOfDealer
+        ? esc(r.memberOfDealer) + ' <span class="sub">(직접 입력값)</span>'
+        : '<span class="sub">직접 입력 필요</span>';
       // 검토가 필요한 줄은 **기본으로 꺼 둔다.** 켜 두면 그대로 내보내기 쉽다.
       return '<tr class="' + (r.ready ? '' : 'flag') + '">' +
         '<td><input type="checkbox" class="chk" data-i="' + i + '"' +
@@ -117,10 +134,12 @@
         '<td>' + esc(r.name) + '</td>' +
         '<td>' + esc(r.countryCode || r.country) +
           (r.countryName ? ' <span class="sub">' + esc(r.countryName) + '</span>' : '') + '</td>' +
+        '<td>' + regionBadge + '</td>' +
         '<td>' + esc(r.lang) + '</td>' +
         '<td>' + esc(r.email) + '</td>' +
         '<td>' + esc(r.dealer) + '</td>' +
-        '<td>' + esc(r.phone) + '</td>' + perms +
+        '<td>' + esc(r.phone) + '</td>' +
+        '<td>' + mod + '</td>' + perms +
         '<td class="rev">' + esc(r.review) + '</td></tr>';
     }).join('');
 
@@ -145,7 +164,8 @@
       '<div class="note"><b>넣을 줄은 직접 고르세요.</b> 검토가 필요한 줄은 기본으로 꺼 두었습니다. ' +
       '내보낸 JSON 을 <code>scripts/portal-fill.mjs</code> 에 넘기면 입력칸을 대신 채웁니다.<br>' +
       '<b>로그인은 사람이 직접 합니다</b> — 스크립트는 계정 정보를 다루지 않습니다. ' +
-      '최종 Save 도 사람이 누릅니다. <a href="guide.html">사용법</a> 참고.</div>';
+      '최종 Save 도 사람이 누릅니다. <a href="guide.html">사용법</a> 참고.</div>' +
+      renderRegionItems();
 
     $('#dl-xlsx').addEventListener('click', downloadXlsx);
     $('#dl-json').addEventListener('click', downloadJson);
@@ -160,6 +180,31 @@
       updateCount();
     });
     updateCount();
+  }
+
+  /**
+   * Region 이 APAC·LA·MEA 인 딜러마다 Account/Authorization 화면의 Items to Select
+   * 26개를 "제안값"으로 보여준다(임나연 수정요청 — config/region-items.json 참고).
+   *
+   * ⚠ 여기서 만드는 체크는 **포털에 아무것도 넣지 않는다.** 화면에서 사람이
+   *   실제로 체크하기 전에 무엇을 봐야 하는지 미리 보여 주는 참고용일 뿐이다.
+   */
+  function renderRegionItems() {
+    if (!REGIONCFG) return '';
+    var targets = rows.filter(function (r) { return r.regionItems && r.regionItems.autoCheck; });
+    if (!targets.length) return '';
+    var cards = targets.map(function (r) {
+      var items = r.regionItems.items.map(function (it) {
+        return '<li><label><input type="checkbox" checked disabled> ' + esc(it) + '</label></li>';
+      }).join('');
+      return '<div class="card region-card">' +
+        '<h3>' + esc(r.name) + ' <span class="sub">' + esc(r.dealer) + ' · ' + esc(r.hdRegion) + '</span></h3>' +
+        '<ul class="region-items">' + items + '</ul></div>';
+    }).join('');
+    return '<h2>Account/Authorization — Items to Select (APAC · LA · MEA 자동 제안)</h2>' +
+      '<p class="sub">국가로 판정한 Region 이 APAC/LA/MEA 인 딜러는 아래 26개 항목을 전부 체크하는 것이 기본값입니다. ' +
+      '<b>제안일 뿐입니다</b> — access.hd-ce.com 의 Account/Authorization 탭에서 사람이 직접 확인하고 체크하세요.</p>' +
+      cards;
   }
 
   function selectedIndexes() {
@@ -177,12 +222,14 @@
   }
 
   function downloadXlsx() {
-    var cols = ['이름', '국가코드', '국가', '언어', '이메일', '딜러사명', '전화번호']
+    var cols = ['이름', '국가코드', '국가', 'Region', '언어', '이메일', '딜러사명', '전화번호',
+                'Member of Dealer(직접 입력 필요)']
       .concat(CFG.modules.map(function (m) { return m.label; }))
       .concat(['등록가능', '검토필요']);
     var aoa = [cols];
     rows.forEach(function (r) {
-      aoa.push([r.name, r.countryCode || '', r.countryName || '', r.lang, r.email, r.dealer, r.phone]
+      aoa.push([r.name, r.countryCode || '', r.countryName || '', r.hdRegion || '', r.lang, r.email,
+                r.dealer, r.phone, r.memberOfDealer || '']
         .concat(CFG.modules.map(function (m) { return r.perms ? (r.perms[m.key] || '') : ''; }))
         .concat([r.ready ? 'Y' : 'N', r.review]));
     });
@@ -205,6 +252,11 @@
     var ok = chosen.map(function (r) {
       return { name: r.name, country: r.countryCode, language: r.lang,
                email: r.email, dealer: r.dealer, phone: r.phone, permissions: r.perms,
+               hdRegion: r.hdRegion || null,
+               regionItemsSuggested: (r.regionItems && r.regionItems.autoCheck) ? r.regionItems.items : [],
+               // 자동화 대상이 아니다 — 값이 있어도 참고용으로만 옮긴다.
+               memberOfDealer: r.memberOfDealer || '',
+               memberOfDealerNote: '자동화 대상 아님 — 포털에서 직접 검색/선택',
                // 내보낼 때 어떤 상태였는지 남긴다
                verified: r.ready, note: r.review || '' };
     });

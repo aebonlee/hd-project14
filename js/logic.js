@@ -27,11 +27,21 @@
   var ALIASES = {
     name:    ['name', 'user name', 'full name', '이름', '성명', '담당자', '담당자명'],
     country: ['country', 'country code', 'nation', '국가', '국가코드', '나라'],
-    lang:    ['language', 'lang', 'locale', '언어', '사용언어'],
+    lang:    ['language', 'lang', 'locale', 'preferred language', '언어', '사용언어'],
     email:   ['email', 'e-mail', 'mail', '이메일', '메일', '메일주소'],
     dealer:  ['dealer', 'dealer name', 'company', 'distributor', '딜러사', '딜러사명',
               '업체명', '회사명', '대리점'],
-    phone:   ['phone', 'tel', 'telephone', 'mobile', 'contact', '전화', '전화번호', '연락처', '휴대폰']
+    phone:   ['phone', 'tel', 'telephone', 'mobile', 'mobile (entry)', 'contact',
+              '전화', '전화번호', '연락처', '휴대폰']
+  };
+
+  /**
+   * 정식 DealerNET User Registration 템플릿의 'Member of Dealer' 열은 절대 자동 채우지 않는다.
+   * 실제 포털에서 "Search and select the dealer"로 사람이 검색해 고르는 항목이라
+   * 여기서 값을 추정해 넣으면 틀린 딜러가 연결될 수 있다 — 그대로 옮겨 보여만 준다.
+   */
+  var PASSTHROUGH_ALIASES = {
+    memberOfDealer: ['member of dealer']
   };
 
   function norm(s) {
@@ -43,6 +53,17 @@
   function mapHeader(cells) {
     var used = {}, out = {};
     var n = (cells || []).map(norm);
+    // 'Member of Dealer' 는 일반 FIELDS 매칭보다 먼저 잡아서 쓴 칸으로 표시해 둔다.
+    // 안 그러면 'dealer' 별칭이 "member of dealer" 안의 'dealer' 를 주워
+    // 딜러사명 칸으로 잘못 채간다(자동화하면 안 되는 항목이 자동화되어 버린다).
+    Object.keys(PASSTHROUGH_ALIASES).forEach(function (key) {
+      PASSTHROUGH_ALIASES[key].forEach(function (alias) {
+        for (var i = 0; i < n.length; i++) {
+          if (used[i] || !n[i]) continue;
+          if (n[i] === norm(alias)) { out[key] = i; used[i] = true; return; }
+        }
+      });
+    });
     Object.keys(ALIASES).forEach(function (key) {
       for (var a = 0; a < ALIASES[key].length; a++) {
         var alias = norm(ALIASES[key][a]);
@@ -138,9 +159,44 @@
     return { ok: true, reason: null, perms: perms };
   }
 
+  /* ─────────────────────────── Region 자동 판정 (임나연 수정요청) ─────────────────────────── */
+
+  /**
+   * 업로드한 국가 원문 텍스트로 HD 내부 Region(APAC/LA/MEA/EU/NA/BR/CN/ID/IN)을 찾는다.
+   *
+   * ⚠ 이 Region 코드는 permissions.json 의 ISO 두 자리 코드(KR/US/…)와 **다른 체계다.**
+   *   region-items.json 표에서는 IN=인도네시아, ID=인도로 ISO 와 반대다 — 절대 섞어 쓰지 않는다.
+   * ⚠ 영문 국가명 완전 일치로만 찾는다. 한글 표기·오타는 매칭하지 않고 null 을 준다 —
+   *   여기서도 "모르면 기본값을 주지 않는다"는 permissionsFor() 와 같은 원칙을 따른다.
+   */
+  function regionFor(rawCountryText, regionConfig) {
+    if (!regionConfig || !regionConfig.countryToRegion) return null;
+    var s = String(rawCountryText == null ? '' : rawCountryText).trim();
+    if (!s) return null;
+    var table = regionConfig.countryToRegion;
+    if (table[s]) return table[s];
+    var target = norm(s);
+    var keys = Object.keys(table);
+    for (var i = 0; i < keys.length; i++) {
+      if (norm(keys[i]) === target) return table[keys[i]];
+    }
+    return null;
+  }
+
+  /**
+   * Region 이 APAC·LA·MEA 면 Account/Authorization 화면의 Items to Select 를
+   * 전부 "제안값"으로 돌려준다. **자동 제출이 아니라 화면 표시용 제안이다** —
+   * 실제 체크는 포털에서 사람이 한다.
+   */
+  function regionItemsFor(hdRegion, regionConfig) {
+    if (!regionConfig) return { autoCheck: false, items: [] };
+    var auto = !!hdRegion && (regionConfig.autoCheckRegions || []).indexOf(hdRegion) !== -1;
+    return { autoCheck: auto, items: auto ? (regionConfig.itemsToSelect || []) : [] };
+  }
+
   /* ─────────────────────────── 한 줄 검사 ─────────────────────────── */
 
-  function checkRow(raw, config) {
+  function checkRow(raw, config, regionConfig) {
     var problems = [];
     var out = {};
 
@@ -164,6 +220,12 @@
     if (code && !perms.ok && perms.reason) problems.push(perms.reason);
     out.perms = perms.perms;
 
+    out.hdRegion = regionFor(out.country, regionConfig);
+    out.regionItems = regionItemsFor(out.hdRegion, regionConfig);
+
+    // 자동화 대상이 아니다 — 있으면 그대로 보여주기만 한다(검사·수정 안 함).
+    out.memberOfDealer = raw.memberOfDealer == null ? '' : String(raw.memberOfDealer).trim();
+
     out.review = problems.join(' · ');
     out.ready = problems.length === 0;
     return out;
@@ -182,9 +244,10 @@
   }
 
   return {
-    FIELDS: FIELDS, ALIASES: ALIASES,
+    FIELDS: FIELDS, ALIASES: ALIASES, PASSTHROUGH_ALIASES: PASSTHROUGH_ALIASES,
     mapHeader: mapHeader, findHeaderRow: findHeaderRow,
     normalizeCountry: normalizeCountry, checkEmail: checkEmail, normalizePhone: normalizePhone,
-    permissionsFor: permissionsFor, checkRow: checkRow, findDuplicates: findDuplicates
+    permissionsFor: permissionsFor, regionFor: regionFor, regionItemsFor: regionItemsFor,
+    checkRow: checkRow, findDuplicates: findDuplicates
   };
 });

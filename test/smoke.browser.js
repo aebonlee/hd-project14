@@ -113,6 +113,17 @@ function serve(port) {
     });
     ok(stats.length >= 3, '요약 숫자가 나온다', JSON.stringify(stats));
 
+    group('3-1. Region 자동 매핑 — 임나연 수정요청');
+    /* 샘플에 LA 지역(Guatemala) 딜러 한 줄을 섞어 두었다 — 정말로 화면에 반영되는지 본다. */
+    var regionBadges = await page.locator('#out .badge-auto').count();
+    ok(regionBadges > 0, 'APAC/LA/MEA Region 배지가 뜬다 (' + regionBadges + '개)');
+    var itemBoxes = await page.locator('#out .region-items input[type=checkbox]').count();
+    ok(itemBoxes === 26, 'Items to Select 26개가 전부 나온다 (' + itemBoxes + '개)');
+    var itemUnchecked = await page.locator('#out .region-items input:not(:checked)').count();
+    ok(itemUnchecked === 0, '제안 체크박스는 전부 켜져 있다');
+    var regionNote = await page.textContent('#out');
+    ok(regionNote.indexOf('제안일 뿐입니다') >= 0, '자동 제안일 뿐 실제 제출이 아니라고 분명히 적는다');
+
     group('4. 문제 있는 줄은 고치지 않고 알린다');
     var text = await page.textContent('#out');
     ok(text.indexOf('검토필요') >= 0 || text.indexOf('모든 줄이 등록 가능합니다') >= 0,

@@ -28,6 +28,9 @@ rows = [
     ['Pedro Alves',  'BR', 'Portugu.','pedro alves@br-maq.com.br', 'BR Maquinas',     '+55 11 3000 2222'],  # 이메일 공백
     ['',             'AE', 'English', 'ops@gulf-hd.ae',            'Gulf HD',         '+971 4 123 4567'],   # 이름 없음
     ['Sara Kim',     'KR', '한국어',  'MINJUN.KIM@daehan.co.kr',   '대한기계',        '+82 10-3333-4444'],  # 이메일 중복
+    # Region 자동 매핑 시연용 — 정식 템플릿처럼 국가를 영문 전체 이름으로 적으면
+    # region-items.json 이 Region 을 찾아 Items to Select 를 제안한다(LA 지역).
+    ['Carlos Ruiz',  'Guatemala', 'Spanish', 'c.ruiz@centroam-eq.gt', 'CentroAm Equip.', '+502 2222 3333'],
 ]
 for r in rows: ws.append(r)
 for i, w in enumerate([16, 10, 12, 34, 20, 20], start=1):
